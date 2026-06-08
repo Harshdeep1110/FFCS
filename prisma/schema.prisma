@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────
+
+enum VariantType {
+  DAY_BOARDER
+  HOSTELLER
+}
+
+// ─── Models ──────────────────────────────────────────────
+
+model Organizer {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Student {
+  id                 String         @id @default(cuid())
+  registrationNumber String         @unique
+  password           String
+  name               String
+  creditLimit        Int            @default(27)
+  creditsUsed        Int            @default(0)
+  variantType        VariantType    @default(HOSTELLER)
+  completedCourses   String[]       @default([])
+  registrations      Registration[]
+  createdAt          DateTime       @default(now())
+}
+
+model Course {
+  id             String   @id @default(cuid())
+  courseCode      String   @unique
+  courseName      String
+  creditValue     Int
+  courseType       String   @default("Theory")
+  prerequisites   String[] @default([])
+  antirequisites  String[] @default([])
+  slots           Slot[]
+  createdAt       DateTime @default(now())
+}
+
+model Teacher {
+  id              String   @id @default(cuid())
+  name            String
+  assignedSection String?
+  slots           Slot[]
+  createdAt       DateTime @default(now())
+}
+
+model Slot {
+  id            String         @id @default(cuid())
+  slotName      String
+  day           String
+  startTime     String
+  endTime       String
+  seatLimit     Int
+  seatsOccupied Int            @default(0)
+  courseId       String
+  course        Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacherId     String
+  teacher       Teacher        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  registrations Registration[]
+  createdAt     DateTime       @default(now())
+
+  @@unique([slotName, day, teacherId, courseId])
+}
+
+model Registration {
+  id        String   @id @default(cuid())
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  slotId    String
+  slot      Slot     @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  courseId   String
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, slotId])
+}
+
+model SystemConfig {
+  id               String  @id @default(cuid())
+  registrationOpen Boolean @default(false)
+}
